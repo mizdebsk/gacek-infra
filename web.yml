@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gacek-data
+  labels:
+    name: gacek-data
+spec:
+  capacity:
+    storage: 10Mi
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - vers=4.2
+  nfs:
+    path: /srv/gacek
+    server: 172.22.13.2
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gacek-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Mi
+  selector:
+    matchLabels:
+      name: gacek-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gacek-web
+spec:
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      service: gacek-web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        service: gacek-web
+    spec:
+      containers:
+        - name: gacek-web
+          image: quay.io/mizdebsk/gacek-web:latest
+          env:
+            - name: GACEK_HOME
+              value: /srv/gacek
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: data
+              mountPath: /srv/gacek
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gacek-data
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - op01.kos.kjnet.xyz
+                      - op02.kos.kjnet.xyz
+                      - op03.kos.kjnet.xyz
+                      - op04.kos.kjnet.xyz
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              service: gacek-web
+          topologyKey: kubernetes.io/hostname
+          maxSkew: 1
+          whenUnsatisfiable: DoNotSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gacek-web
+  labels:
+    service: gacek-web
+spec:
+  ports:
+  - port: 8080
+  selector:
+    service: gacek-web
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gacek
+spec:
+  rules:
+  - host: gacek.kos.kjnet.xyz
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gacek-web
+            port:
+              number: 8080
