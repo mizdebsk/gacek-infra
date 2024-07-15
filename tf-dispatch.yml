@@ -1,0 +1,55 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gacek-tf-dispatch
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: gacek-tf-dispatch
+              image: quay.io/mizdebsk/gacek-tf-dispatch:latest
+              env:
+                - name: GACEK_HOME
+                  value: /srv/gacek
+                - name: TF_API_KEY_PATH
+                  value: /etc/tf-api-key
+              volumeMounts:
+                - name: data
+                  mountPath: /srv/gacek
+                - name: tf-api-key
+                  mountPath: /etc/tf-api-key
+                  subPath: tf-api-key
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 1000m
+                  memory: 512Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: gacek-data
+            - name: tf-api-key
+              secret:
+                secretName: gacek-tf-api-key
+          affinity:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 1
+                  preference:
+                    matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - op01.kos.kjnet.xyz
+                          - op02.kos.kjnet.xyz
+                          - op03.kos.kjnet.xyz
+                          - op04.kos.kjnet.xyz
