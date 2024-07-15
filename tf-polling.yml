@@ -16,10 +16,10 @@ spec:
               image: quay.io/mizdebsk/gacek-tf-polling:latest
               env:
                 - name: GACEK_HOME
-                  value: /srv/gacek
+                  value: /mnt/nfs/gacek
               volumeMounts:
                 - name: data
-                  mountPath: /srv/gacek
+                  mountPath: /mnt/nfs/gacek
               resources:
                 requests:
                   cpu: 100m

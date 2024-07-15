@@ -16,12 +16,12 @@ spec:
               image: quay.io/mizdebsk/gacek-tf-dispatch:latest
               env:
                 - name: GACEK_HOME
-                  value: /srv/gacek
+                  value: /mnt/nfs/gacek
                 - name: TF_API_KEY_PATH
                   value: /etc/tf-api-key
               volumeMounts:
                 - name: data
-                  mountPath: /srv/gacek
+                  mountPath: /mnt/nfs/gacek
                 - name: tf-api-key
                   mountPath: /etc/tf-api-key
                   subPath: tf-api-key

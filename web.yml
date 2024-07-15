@@ -20,12 +20,12 @@ spec:
           image: quay.io/mizdebsk/gacek-web:latest
           env:
             - name: GACEK_HOME
-              value: /srv/gacek
+              value: /mnt/nfs/gacek
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: data
-              mountPath: /srv/gacek
+              mountPath: /mnt/nfs/gacek
               readOnly: true
           resources:
             requests:
