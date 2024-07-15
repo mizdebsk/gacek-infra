@@ -1,0 +1,46 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gacek-tf-polling
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: gacek-tf-polling
+              image: quay.io/mizdebsk/gacek-tf-polling:latest
+              env:
+                - name: GACEK_HOME
+                  value: /srv/gacek
+              volumeMounts:
+                - name: data
+                  mountPath: /srv/gacek
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 1000m
+                  memory: 512Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: gacek-data
+          affinity:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 1
+                  preference:
+                    matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - op01.kos.kjnet.xyz
+                          - op02.kos.kjnet.xyz
+                          - op03.kos.kjnet.xyz
+                          - op04.kos.kjnet.xyz
